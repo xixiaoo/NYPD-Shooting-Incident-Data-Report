@@ -15,6 +15,9 @@ for additional information about this dataset.
 
 ## NYPD-RMD
 Step 1. Start an Rmd Document
+
 Step 2. Tidy and Transform Data
+
 Step 3. Visualization and Analysis
+
 Step 4: Conclusion and Bias Identification
