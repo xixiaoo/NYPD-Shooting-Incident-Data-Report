@@ -1,0 +1,156 @@
+---
+title: "NYPD Shooting Incident Data Report"
+author: "Xiao"
+date: "2023-01-23"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Description of the data - NYPD Shooting Incident Data (Historic):
+
+This is a breakdown of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. This data is manually extracted every quarter and reviewed by the Office of Management Analysis and Planning before being posted on the NYPD website. Each record represents a shooting incident in NYC and includes information about the event, the location and time of occurrence. In addition, information related to suspect and victim demographics is also included. This data can be used by the public to explore the nature of shooting/criminal activity. Please refer to the attached data footnotes for additional information about this dataset.
+
+## Questions of interest
+This project will analyze NYPD shooting incidence data to assess the safety of New York City. The NYPD shooting incidence dataset that we use is accessible on data.gov. This dataset is a breakdown of every shooting incident that occurred in NYC from 2006 to 2022. My research questions are: Are all areas of Brooklyn equally dangerous? Is Manhattan a safer area overall? And what time of day should one avoid going out in New York City?
+
+
+
+# Step 1. Start an Rmd Document
+ 
+##    a. loading package
+
+```{r get package}
+library(tidyverse)
+```
+
+##    b. reading the data 
+```{r import_data, message=FALSE}
+url_in <- "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
+NYPD <- read.csv(url_in)
+```
+
+# Step 2. Tidy and Transform Data
+
+##    a. check for missing value
+
+```{r check missing value}
+sapply(NYPD,function(x) table(as.character(x) =="")["TRUE"])
+```
+
+
+##    b.tidy dataset
+
+Due to an excessive amount of missing values, the columns perp age group, perp sex, perp race, and location desc will not be used. I will be using the columns vic_age_group, vic_sex, vic_race, boro, and precinct columns. As they have high quality data. 
+Columns jurisdiction code and the columns from x_coord_cd to lon_lat will not be used in my analysis.
+ 
+```{r tidy_NYPD}
+NYPD <- subset(NYPD, select = -c(JURISDICTION_CODE,LOCATION_DESC,
+PERP_AGE_GROUP:PERP_RACE,X_COORD_CD:Lon_Lat))
+```
+
+##    c. summary of the dataset
+
+```{r summary}
+summary(NYPD)
+```
+
+# Step 3. Visualization and Analysis
+
+##    a. visualizing Data
+```{r visualizing data}
+ggplot(NYPD, aes(x=BORO,fill="red")) + geom_bar() + 
+  labs(title = "Distribution of the NYC shooting incidents", 
+       x="Boroughs", y="Count of Incidents")
+
+ggplot(NYPD, aes(x=VIC_AGE_GROUP,fill="red")) + geom_bar() + 
+  labs(title = "Distribution of the victims age group", 
+       x="Victims Age Group",y="Count of Incidents")
+
+ggplot(NYPD, aes(x=VIC_SEX,fill="red")) + geom_bar() + 
+  labs(title = "Distribution of the victims sex", 
+       x="Victims Sex", y="Count of Incidents")
+
+ggplot(NYPD, aes(x=VIC_RACE,fill="red")) + geom_bar() + 
+  labs(title = "Distribution of the victims race", 
+       x="Victims Race", y="Count of Incidents") + 
+  theme(axis.text.x= element_text(size=8, angle=15))
+
+ggplot(NYPD, aes(x=STATISTICAL_MURDER_FLAG,fill="red")) + geom_bar() + 
+  labs(title ="Statistical Murder", x="Murder", y="Count of Incidents")
+```
+
+According to the above bar charts, Brooklyn has the most shooting incidents. The majority of the victims are male, between the ages of 18 and 44, and are of the black race. 80% of the incidents are not murder. In light of this, I now have a research question. Are all areas of Brooklyn dangerous? Is Manhattan a safer area? What time should you not be out in New York City?
+
+
+##    b. analysis and research questions
+
+###       Analysis for research question for 1 and 2
+
+
+1st to 34th precinct represented in Manhattan. 40th to 52nd precinct represented in Bronx. 60th to 94th precinct represented in Brooklyn. 100th to 115th precinct represented in Queens. 120th to 123rd represented in Staten Island.
+
+```{r analyst}
+ggplot(NYPD, aes(x=PRECINCT,fill=BORO)) + geom_bar() +
+  labs(title = "Distribution of the incidents by precinct", 
+       x="Precinct", y="Count of Incidents")
+
+```
+
+## The first column of the table is the number of precincts.
+
+```{r analyst2}
+table(NYPD$PRECINCT,NYPD$BORO)
+```
+
+###     research question 1. Are all areas of Brooklyn equally dangerous?
+ 
+We can see from the bar chart and table that there are three precincts in Brooklyn—the 73rd, 75th, and 67th—where there have been more than 1000 shooting events. However, some regions, like the 62nd, 66th, 68th, 72nd, 78th and 94th precincts, have fewer than 100 shooting incidents.
+
+###     research question 2. Is Manhattan a safer area overall?
+The table shows that the 1st through the 22nd and 24th precincts are fairly safe, with the number of gunshot incidents being equal to or below 100. The average number of shooting incidents in the 23rd, 25th to 34th precincts is similar to the other boroughs.
+
+
+###     Analysis for research question 3
+
+```{r visualizing occurtime}
+
+hour <- as.integer(substr(NYPD$OCCUR_TIME,1,2))
+
+NYPD <- data.frame(INCIDENT_KEY=NYPD$INCIDENT_KEY,OCCUR_DATE=NYPD$OCCUR_DATE, OCCUR_TIME=NYPD$OCCUR_TIME, hour = hour,BORO=NYPD$BORO,PRECINCT=NYPD$PRECINCT,
+                   STATISTICAL_MURDER_FLAG=NYPD$STATISTICAL_MURDER_FLAG,
+                   VIC_AGE_GROUP=NYPD$VIC_AGE_GROUP,VIC_SEX=NYPD$VIC_SEX,
+                   VIC_RACE =NYPD$VIC_RACE)
+
+ggplot(NYPD, aes(x=hour)) + geom_bar(fill="coral2") + 
+  labs(title = "Distribution of the incidents by Hours", 
+       x="Hour", y="Count of Incidents")
+ggplot(NYPD, aes(x=hour,y=BORO)) + geom_jitter(color="coral2") +
+    labs(title = "Distribution of the incidents by Hours for each Boroughs", 
+       x="Hour", y="Boroughs")
+```
+
+###     research question 3. And what time of day should one avoid going out in New York City?
+
+We can observe from the bar chart and jitter graph that the safest time is from 5:30 am to 12:30 pm. The dangerous period is from 9:30 pm to 2:30 am. Midnight is the most dangerous time to go out.
+
+
+# Step 4: Conclusion and Bias Identification
+
+### Conclusion: 
+Even though Brooklyn has the most shootings, certain areas are relatively safe with fewer than 100 shootings from the year of 2006 to 2022. Lower Manhattan, midtown, upper east side and upper west side are relatively safe, where there have been less than 100 shootings from the year of 2006 to 2022. Midnight is a dangerous time go out. I have attached a map image of new york city by the number of precincts.
+
+### Bias:
+My bias for this project is overusing bar charts for analysis and visualization. I mitigated that by using table and jitter graph for visualization and analysis rather than more bar chart.
+
+
+
+
+## A image for NYPD Police precincts
+https://www.nyc.gov/site/nypd/bureaus/patrol/precincts-landing.page
+```{r echo=FALSE, out.width="100%"}
+knitr::include_graphics("/Users/xiao/Desktop/Precinct Map.png",error = FALSE)
+
+```
+
+
+
